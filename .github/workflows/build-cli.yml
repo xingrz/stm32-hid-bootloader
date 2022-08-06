@@ -1,0 +1,60 @@
+name: Build CLI
+
+on:
+  push:
+    branches: '*'
+    tags: 'v*.*'
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      matrix:
+        include:
+          - { name: win32, os: windows-latest, suffix: '.exe' }
+          - { name: linux, os: ubuntu-latest, suffix: '' }
+          - { name: darwin, os: macos-latest, suffix: '' }
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install build dependencies (Linux)
+        if: matrix.name == 'linux'
+        run: sudo apt-get install libusb-1.0-0-dev
+
+      - name: Install build dependencies (macOS)
+        if: matrix.name == 'darwin'
+        run: brew install libusb
+
+      - name: Build
+        run: make
+        working-directory: cli
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: hid-flash-${{ matrix.name }}
+          path: cli/hid-flash${{ matrix.suffix }}
+          if-no-files-found: error
+
+      - name: Pack release assets
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        uses: thedoctor0/zip-release@main
+        with:
+          type: zip
+          directory: cli
+          filename: ../hid-flash-${{ matrix.name }}.zip
+          path: hid-flash${{ matrix.suffix }}
+
+      - name: Publish
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        uses: svenstaro/upload-release-action@v2
+        with:
+          tag: ${{ github.ref }}
+          file: hid-flash-${{ matrix.name }}.zip
+          repo_token: ${{ secrets.GITHUB_TOKEN }}

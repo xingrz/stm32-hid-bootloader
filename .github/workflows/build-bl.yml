@@ -1,0 +1,47 @@
+name: Build Bootloader
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Toolchain
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: '10.3-2021.10'
+
+      - name: Build
+        run: make
+        working-directory: bootloader
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: bootloader
+          path: |
+            bootloader/HIDBOOTLOADER.bin
+            bootloader/HIDBOOTLOADER.hex
+          if-no-files-found: error
+
+  publish:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: bootloader
+
+      - name: Publish
+        uses: svenstaro/upload-release-action@v2
+        with:
+          tag: ${{ github.ref }}
+          file: HIDBOOTLOADER.*
+          file_glob: true
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
