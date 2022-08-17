@@ -32,13 +32,19 @@ int main() {
 	// Turn GPIOB clock on
 	bit_set(RCC->APB2ENR, RCC_APB2ENR_IOPBEN);
 
-	// Set B2 as Input Mode Floating
-	bit_clear(GPIOB->CRL, GPIO_CRL_MODE2);
-	bit_set(GPIOB->CRL, GPIO_CRL_CNF2_0);
-	bit_clear(GPIOB->CRL, GPIO_CRL_CNF2_1);
+	// Set B14 (col 0) as Output Mode High
+	bit_set(GPIOB->CRH, GPIO_CRH_MODE14);
+	bit_clear(GPIOB->CRH, GPIO_CRH_CNF14);
+	bit_set(GPIOB->BSRR, GPIO_BSRR_BS14);
 
-	// If B2 (BOOT1) is HIGH then go into HID bootloader...
-	if(GPIOB->IDR & GPIO_IDR_IDR2) {
+	// Set B8 (row 3) as Input Mode Pull Down
+	bit_clear(GPIOB->CRH, GPIO_CRH_MODE8);
+	bit_clear(GPIOB->CRH, GPIO_CRH_CNF8_0);
+	bit_set(GPIOB->CRH, GPIO_CRH_CNF8_1);
+	bit_clear(GPIOB->ODR, GPIO_ODR_ODR8);
+
+	// If B8 (key 0,3) is HIGH then go into HID bootloader...
+	if(GPIOB->IDR & GPIO_IDR_IDR8) {
 		USB_Init(HIDUSB_EPHandler, HIDUSB_Reset);
 	} else {
 		// Turn GPIOB clock off
